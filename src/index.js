@@ -9,6 +9,7 @@ const buddyRoutes = require('./routes/buddies');
 const accommodationRoutes = require('./routes/accommodations');
 const inviteRoutes = require('./routes/invites');
 const userRoutes = require('./routes/users');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,6 +25,7 @@ app.use('/api/buddies', buddyRoutes);
 app.use('/api/accommodations', accommodationRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/upload', uploadRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 createTables()

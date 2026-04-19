@@ -46,6 +46,7 @@ const createTables = async () => {
       type VARCHAR(50),
       description TEXT,
       status VARCHAR(20) DEFAULT 'available' CHECK (status IN ('available','under_offer','taken')),
+      image_url TEXT,
       uploaded_by INTEGER REFERENCES users(id),
       created_at TIMESTAMP DEFAULT NOW()
     );

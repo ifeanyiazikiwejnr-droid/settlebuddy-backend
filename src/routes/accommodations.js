@@ -13,13 +13,13 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, requireRole('admin'), async (req, res) => {
-  const { title, location, price, type, description, status } = req.body;
+  const { title, location, price, type, description, status, image_url } = req.body;
   if (!title || !location || !price)
     return res.status(400).json({ error: 'Title, location and price are required' });
   try {
     const result = await pool.query(
-      'INSERT INTO accommodations (title,location,price,type,description,status,uploaded_by) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-      [title, location, price, type, description, status || 'available', req.user.id]
+      'INSERT INTO accommodations (title,location,price,type,description,status,image_url,uploaded_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+      [title, location, price, type, description, status || 'available', image_url || null, req.user.id]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
