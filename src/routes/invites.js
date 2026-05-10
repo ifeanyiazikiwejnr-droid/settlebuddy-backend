@@ -27,7 +27,8 @@ router.post('/', authenticate, requireRole('admin'), async (req, res) => {
     );
 
     // Build the invite link
-    const link = `http://localhost:3000/register-buddy/${token}`;
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const link = `${baseUrl}/register-buddy/${token}`;
 
     // In production you would send an email here
     // For now we return the link so admin can share it manually
