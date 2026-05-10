@@ -58,6 +58,21 @@ const createTables = async () => {
       created_by INTEGER REFERENCES users(id),
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS conversations (
+      id SERIAL PRIMARY KEY,
+      student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      buddy_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(student_id, buddy_id)
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
+      sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      read BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS buddy_requests (
       id SERIAL PRIMARY KEY,
       student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
