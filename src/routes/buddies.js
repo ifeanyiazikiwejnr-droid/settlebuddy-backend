@@ -82,6 +82,18 @@ router.patch('/requests/:id', authenticate, requireRole('buddy'), async (req, re
     return res.status(400).json({ error: 'Invalid status' });
   try {
     await pool.query('UPDATE buddy_requests SET status=$1 WHERE id=$2', [status, req.params.id]);
+
+    // Auto-create conversation when accepted
+    if (status === 'accepted') {
+      const request = await pool.query('SELECT * FROM buddy_requests WHERE id=$1', [req.params.id]);
+      const { student_id, buddy_id } = request.rows[0];
+      await pool.query(
+        `INSERT INTO conversations (student_id, buddy_id)
+         VALUES ($1,$2) ON CONFLICT (student_id, buddy_id) DO NOTHING`,
+        [student_id, buddy_id]
+      );
+    }
+
     res.json({ message: `Request ${status}` });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
