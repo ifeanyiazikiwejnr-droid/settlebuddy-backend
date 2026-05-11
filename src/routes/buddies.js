@@ -134,5 +134,24 @@ router.get('/my-profile', authenticate, requireRole('buddy'), async (req, res) =
     res.status(500).json({ error: 'Server error' });
   }
 });
-
+router.get('/my-matches', authenticate, requireRole('buddy'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        u.id, u.name, u.email,
+        br.created_at as matched_date,
+        c.id as conversation_id
+       FROM buddy_requests br
+       JOIN users u ON u.id = br.student_id
+       LEFT JOIN conversations c ON (c.student_id = br.student_id AND c.buddy_id = $1)
+       WHERE br.buddy_id = $1 AND br.status = 'accepted'
+       ORDER BY br.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.log('My matches error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 module.exports = router;
