@@ -51,6 +51,21 @@ router.post('/profile', authenticate, requireRole('buddy'), async (req, res) => 
 router.post('/:id/request', authenticate, requireRole('student'), async (req, res) => {
   const buddyId = parseInt(req.params.id);
   try {
+    // Check if student already has an active request or accepted match
+    const existing = await pool.query(
+      `SELECT * FROM buddy_requests 
+       WHERE student_id = $1 AND status IN ('pending', 'accepted')`,
+      [req.user.id]
+    );
+    if (existing.rows.length) {
+      const status = existing.rows[0].status;
+      if (status === 'accepted') {
+        return res.status(400).json({ error: 'You already have an active buddy. You can only have one buddy at a time.' });
+      }
+      if (status === 'pending') {
+        return res.status(400).json({ error: 'You already have a pending request. Wait for a response before requesting another buddy.' });
+      }
+    }
     await pool.query(
       'INSERT INTO buddy_requests (student_id,buddy_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
       [req.user.id, buddyId]
@@ -151,6 +166,30 @@ router.get('/my-matches', authenticate, requireRole('buddy'), async (req, res) =
     res.json(result.rows);
   } catch (err) {
     console.log('My matches error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/my-buddy-status', authenticate, requireRole('student'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        br.id, br.status, br.created_at,
+        u.name as buddy_name, u.email as buddy_email,
+        bp.origin, bp.university, bp.languages, bp.bio,
+        c.id as conversation_id
+       FROM buddy_requests br
+       JOIN users u ON u.id = br.buddy_id
+       LEFT JOIN buddy_profiles bp ON bp.user_id = br.buddy_id
+       LEFT JOIN conversations c ON (c.student_id = $1 AND c.buddy_id = br.buddy_id)
+       WHERE br.student_id = $1 AND br.status IN ('pending','accepted')
+       ORDER BY br.created_at DESC
+       LIMIT 1`,
+      [req.user.id]
+    );
+    res.json(result.rows[0] || null);
+  } catch (err) {
+    console.log('Buddy status error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
