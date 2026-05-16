@@ -50,6 +50,13 @@ const createTables = async () => {
       uploaded_by INTEGER REFERENCES users(id),
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(150) NOT NULL,
+      token VARCHAR(255) UNIQUE NOT NULL,
+      used BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS buddy_invites (
       id SERIAL PRIMARY KEY,
       email VARCHAR(150) UNIQUE NOT NULL,

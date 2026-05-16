@@ -98,4 +98,63 @@ router.post('/register-buddy', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+    if (!result.rows.length) {
+      // Don't reveal if email exists or not
+      return res.json({ message: 'If that email exists, a reset link has been generated.' });
+    }
+    const user = result.rows[0];
+    if (user.role === 'admin') {
+      return res.status(403).json({ error: 'Admin accounts cannot use password reset.' });
+    }
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    await pool.query(
+      `INSERT INTO password_resets (email, token)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [email, token]
+    );
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const link = `${baseUrl}/reset-password/${token}`;
+    // In production send via email — for now return the link
+    res.json({
+      message: 'Reset link generated successfully.',
+      link,
+    });
+  } catch (err) {
+    console.log('Forgot password error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token and password are required' });
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  try {
+    const result = await pool.query(
+      'SELECT * FROM password_resets WHERE token=$1 AND used=false',
+      [token]
+    );
+    if (!result.rows.length) return res.status(400).json({ error: 'Invalid or expired reset link' });
+
+    const reset = result.rows[0];
+    const hashed = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE users SET password=$1 WHERE email=$2', [hashed, reset.email]);
+    await pool.query('UPDATE password_resets SET used=true WHERE token=$1', [token]);
+    res.json({ message: 'Password reset successfully' });
+  } catch (err) {
+    console.log('Reset password error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
