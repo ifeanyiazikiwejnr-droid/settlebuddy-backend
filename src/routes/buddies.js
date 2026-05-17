@@ -193,4 +193,25 @@ router.get('/my-buddy-status', authenticate, requireRole('student'), async (req,
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+router.delete('/unmatch', authenticate, requireRole('student'), async (req, res) => {
+  try {
+    // Delete the accepted request
+    await pool.query(
+      `DELETE FROM buddy_requests 
+       WHERE student_id=$1 AND status='accepted'`,
+      [req.user.id]
+    );
+    // Delete the conversation
+    await pool.query(
+      `DELETE FROM conversations WHERE student_id=$1`,
+      [req.user.id]
+    );
+    res.json({ message: 'Unmatched successfully' });
+  } catch (err) {
+    console.log('Unmatch error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
