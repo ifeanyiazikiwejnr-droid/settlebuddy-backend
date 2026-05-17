@@ -5,7 +5,30 @@ const router = express.Router();
 
 router.get('/', authenticate, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM accommodations ORDER BY created_at DESC');
+    const { city } = req.query;
+    let query = 'SELECT * FROM accommodations';
+    const params = [];
+    if (city) {
+      params.push(`%${city}%`);
+      query += ' WHERE LOWER(location) LIKE LOWER($1)';
+    }
+    query += ' ORDER BY created_at DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/accommodations/cities - get unique cities
+router.get('/cities', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT SPLIT_PART(location, ',', 1) as city, COUNT(*) as count
+       FROM accommodations
+       GROUP BY city
+       ORDER BY city ASC`
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
