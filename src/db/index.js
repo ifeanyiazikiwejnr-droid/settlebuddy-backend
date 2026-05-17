@@ -57,6 +57,12 @@ const createTables = async () => {
       used BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS accommodation_images (
+      id SERIAL PRIMARY KEY,
+      accommodation_id INTEGER REFERENCES accommodations(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS buddy_invites (
       id SERIAL PRIMARY KEY,
       email VARCHAR(150) UNIQUE NOT NULL,
@@ -90,6 +96,7 @@ const createTables = async () => {
     );
   `);
   await pool.query(`ALTER TABLE accommodations ADD COLUMN IF NOT EXISTS image_url TEXT`);
+  await pool.query('ALTER TABLE accommodations ADD COLUMN IF NOT EXISTS detailed_description TEXT');
   console.log('Database tables ready');
 };
 
