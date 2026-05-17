@@ -24,15 +24,21 @@ router.post('/accommodation', authenticate, requireRole('admin'), upload.single(
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
     // Upload buffer directly to Cloudinary
+    console.log('Uploading file:', req.file.originalname, req.file.mimetype, req.file.size);
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
           folder: 'settlebuddy/accommodations',
-          transformation: [{ width: 800, height: 500, crop: 'fill', quality: 'auto' }],
+          resource_type: 'image',
         },
         (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
+          if (error) {
+            console.log('Cloudinary error:', JSON.stringify(error));
+            reject(error);
+          } else {
+            console.log('Cloudinary success:', result.secure_url);
+            resolve(result);
+          }
         }
       ).end(req.file.buffer);
     });
