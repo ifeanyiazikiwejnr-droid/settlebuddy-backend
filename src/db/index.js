@@ -89,6 +89,7 @@ const createTables = async () => {
       UNIQUE(student_id, buddy_id)
     );
   `);
+  await pool.query(`ALTER TABLE accommodations ADD COLUMN IF NOT EXISTS image_url TEXT`);
   console.log('Database tables ready');
 };
 
