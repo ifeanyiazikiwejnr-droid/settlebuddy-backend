@@ -121,7 +121,10 @@ router.post('/forgot-password', async (req, res) => {
        ON CONFLICT DO NOTHING`,
       [email, token]
     );
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    let baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    if (baseUrl.startsWith('http://') && !baseUrl.includes('localhost')) {
+      baseUrl = baseUrl.replace('http://', 'https://');
+    }
     const link = `${baseUrl}/reset-password/${token}`;
     // In production send via email — for now return the link
     res.json({
