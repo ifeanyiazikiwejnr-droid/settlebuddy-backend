@@ -10,7 +10,7 @@ router.get('/', authenticate, async (req, res) => {
       SELECT u.id, u.name, bp.origin, bp.university, bp.languages, bp.bio, bp.available
       FROM users u
       JOIN buddy_profiles bp ON u.id = bp.user_id
-      WHERE u.role = 'buddy'
+      WHERE u.role = 'buddy' AND u.verified = true
     `;
     const params = [];
     if (language) {
