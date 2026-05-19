@@ -10,13 +10,15 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'All fields are required' });
   if (!['student','buddy','admin'].includes(role))
     return res.status(400).json({ error: 'Invalid role' });
+  // Buddies self-register as unverified
+  const verified = role === 'student' || role === 'admin';
   try {
     const exists = await pool.query('SELECT id FROM users WHERE email=$1', [email]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
     const hashed = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (name,email,password,role) VALUES ($1,$2,$3,$4) RETURNING id,name,email,role',
-      [name, email, hashed, role]
+      'INSERT INTO users (name,email,password,role,verified) VALUES ($1,$2,$3,$4,$5) RETURNING id,name,email,role,verified',
+      [name, email, hashed, role, verified]
     );
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -37,7 +39,7 @@ router.post('/login', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified } });
   } catch (err) {
     console.log('Login error:', err.message);
     res.status(500).json({ error: 'Server error' });
@@ -125,7 +127,7 @@ router.post('/forgot-password', async (req, res) => {
     if (baseUrl.startsWith('http://') && !baseUrl.includes('localhost')) {
       baseUrl = baseUrl.replace('http://', 'https://');
     }
-    const link = `${baseUrl}/reset-password/${token}`;
+    const link = `${baseUrl}/reset-password.html?token=${token}`;
     // In production send via email — for now return the link
     res.json({
       message: 'Reset link generated successfully.',
@@ -134,6 +136,21 @@ router.post('/forgot-password', async (req, res) => {
   } catch (err) {
     console.log('Forgot password error:', err.message);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/auth/validate-reset-token
+router.post('/validate-reset-token', async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.json({ valid: false });
+  try {
+    const result = await pool.query(
+      'SELECT * FROM password_resets WHERE token=$1 AND used=false',
+      [token]
+    );
+    res.json({ valid: result.rows.length > 0 });
+  } catch {
+    res.json({ valid: false });
   }
 });
 
@@ -148,7 +165,7 @@ router.post('/reset-password', async (req, res) => {
       [token]
     );
     if (!result.rows.length) return res.status(400).json({ error: 'Invalid or expired reset link' });
-
+ 
     const reset = result.rows[0];
     const hashed = await bcrypt.hash(password, 10);
     await pool.query('UPDATE users SET password=$1 WHERE email=$2', [hashed, reset.email]);
