@@ -116,22 +116,18 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(403).json({ error: 'Admin accounts cannot use password reset.' });
     }
     const crypto = require('crypto');
-    const token = crypto.randomBytes(32).toString('hex');
+    // Generate a simple 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     await pool.query(
       `INSERT INTO password_resets (email, token)
        VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [email, token]
+       ON CONFLICT (email) DO UPDATE SET token=$2, used=false, created_at=NOW()`,
+      [email, code]
     );
-    let baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    if (baseUrl.startsWith('http://') && !baseUrl.includes('localhost')) {
-      baseUrl = baseUrl.replace('http://', 'https://');
-    }
-    const link = `${baseUrl}/reset-password.html?token=${token}`;
-    // In production send via email — for now return the link
     res.json({
-      message: 'Reset link generated successfully.',
-      link,
+      message: 'Reset code generated successfully.',
+      code,
+      email: user.email,
     });
   } catch (err) {
     console.log('Forgot password error:', err.message);
