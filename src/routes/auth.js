@@ -119,9 +119,7 @@ router.post('/forgot-password', async (req, res) => {
     // Generate a simple 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     await pool.query(
-      `INSERT INTO password_resets (email, token)
-       VALUES ($1, $2)
-       ON CONFLICT (email) DO UPDATE SET token=$2, used=false, created_at=NOW()`,
+      `INSERT INTO password_resets (email, token) VALUES ($1, $2)`,
       [email, code]
     );
     res.json({
