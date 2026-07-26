@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 
 const SYSTEM_PROMPT = `You are SettleIn Assistant, a friendly and knowledgeable AI helper for international students arriving in the UK. You are part of the Settle-In Buddy platform.
@@ -37,32 +37,33 @@ router.post('/chat', authenticate, async (req, res) => {
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: messages.slice(-10), // keep last 10 messages for context
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages.slice(-10),
+        ],
       }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.log('Anthropic error:', data);
-      return res.status(500).json({ error: 'AI service error' });
+      console.log('Groq error:', JSON.stringify(data));
+      return res.status(500).json({ error: data.error?.message || 'AI service error' });
     }
 
-    res.json({ reply: data.content[0].text });
+    res.json({ reply: data.choices[0].message.content });
   } catch (err) {
     console.log('AI chat error:', err.message);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: err.message });
   }
 });
 
