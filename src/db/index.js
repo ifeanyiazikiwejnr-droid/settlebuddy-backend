@@ -86,6 +86,15 @@ const createTables = async () => {
       read BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS checklist_items (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      task_key VARCHAR(100) NOT NULL,
+      completed BOOLEAN DEFAULT false,
+      completed_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, task_key)
+    );
     CREATE TABLE IF NOT EXISTS buddy_requests (
       id SERIAL PRIMARY KEY,
       student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,

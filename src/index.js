@@ -13,6 +13,7 @@ const inviteRoutes = require('./routes/invites');
 const userRoutes = require('./routes/users');
 const uploadRoutes = require('./routes/upload');
 const chatRoutes = require('./routes/chat');
+const checklistRoutes = require('./routes/checklist');
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +29,7 @@ app.use('/api/invites', inviteRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/checklist', checklistRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Socket.io setup
