@@ -22,7 +22,7 @@ router.post('/register', async (req, res) => {
     );
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, user });
+    res.status(201).json({ token, user: { ...user, is_premium: false } });
   } catch (err) {
     console.log('Register error:', err.message);
     res.status(500).json({ error: 'Server error' });
@@ -39,7 +39,7 @@ router.post('/login', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified } });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified, is_premium: user.is_premium } });
   } catch (err) {
     console.log('Login error:', err.message);
     res.status(500).json({ error: 'Server error' });

@@ -14,6 +14,7 @@ const userRoutes = require('./routes/users');
 const uploadRoutes = require('./routes/upload');
 const chatRoutes = require('./routes/chat');
 const checklistRoutes = require('./routes/checklist');
+const documentRoutes = require('./routes/documents');
 const aiRoutes = require('./routes/ai');
 
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/checklist', checklistRoutes);
+app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

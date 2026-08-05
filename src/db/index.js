@@ -105,6 +105,8 @@ const createTables = async () => {
     );
   `);
   await pool.query(`ALTER TABLE accommodations ADD COLUMN IF NOT EXISTS image_url TEXT`);
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT false');
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_since TIMESTAMP');
   await pool.query('ALTER TABLE accommodations ADD COLUMN IF NOT EXISTS detailed_description TEXT');
   console.log('Database tables ready');
 };

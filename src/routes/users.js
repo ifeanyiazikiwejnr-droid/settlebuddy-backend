@@ -71,4 +71,35 @@ router.delete('/:id', authenticate, requireRole('admin'), async (req, res) => {
   }
 });
 
+// GET premium users
+router.get('/premium', authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, email, role, created_at, is_premium, premium_since
+       FROM users
+       WHERE is_premium = true
+       ORDER BY premium_since DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH upgrade user to premium
+router.patch('/:id/premium', authenticate, requireRole('admin'), async (req, res) => {
+  const { is_premium } = req.body;
+  try {
+    await pool.query(
+      `UPDATE users SET
+        is_premium=$1,
+        premium_since=$2
+       WHERE id=$3`,
+      [is_premium, is_premium ? new Date() : null, req.params.id]
+    );
+    res.json({ message: is_premium ? 'User upgraded to premium' : 'Premium removed' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 module.exports = router;
