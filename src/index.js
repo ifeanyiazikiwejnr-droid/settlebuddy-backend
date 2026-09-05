@@ -14,6 +14,8 @@ const userRoutes = require('./routes/users');
 const uploadRoutes = require('./routes/upload');
 const chatRoutes = require('./routes/chat');
 const checklistRoutes = require('./routes/checklist');
+const complianceRoutes = require('./routes/compliance');
+const stripeRoutes = require('./routes/stripe');
 const documentRoutes = require('./routes/documents');
 const aiRoutes = require('./routes/ai');
 
@@ -22,6 +24,9 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: '*', credentials: false }));
+// Webhook must be before express.json() middleware
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeRoutes);
+app.use('/api/stripe', stripeRoutes);
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
@@ -29,8 +34,10 @@ app.use('/api/buddies', buddyRoutes);
 app.use('/api/accommodations', accommodationRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/compliance', complianceRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/checklist', checklistRoutes);
 app.use('/api/checklist', checklistRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
