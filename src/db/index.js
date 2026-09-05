@@ -86,6 +86,26 @@ const createTables = async () => {
       read BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS compliance_profiles (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+      course_start DATE,
+      course_end DATE,
+      term_dates JSONB,
+      visa_expiry DATE,
+      university VARCHAR(255),
+      course_name VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS work_hours (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      week_start DATE NOT NULL,
+      hours_worked DECIMAL(4,1) NOT NULL,
+      is_holiday BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, week_start)
+    );
     CREATE TABLE IF NOT EXISTS checklist_items (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
