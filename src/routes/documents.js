@@ -100,7 +100,7 @@ router.post('/analyse', authenticate, requireRole('student'), upload.single('doc
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama3-70b-8192',
         max_tokens: 1500,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
