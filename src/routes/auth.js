@@ -22,7 +22,7 @@ router.post('/register', async (req, res) => {
     );
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, user: { ...user, is_premium: false } });
+    res.status(201).json({ token, user });
   } catch (err) {
     console.log('Register error:', err.message);
     res.status(500).json({ error: 'Server error' });
@@ -171,16 +171,4 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// GET /api/auth/me
-router.get('/me', authenticate, async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT id, name, email, role, verified, is_premium FROM users WHERE id=$1',
-      [req.user.id]
-    );
-    res.json({ user: result.rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
 module.exports = router;
