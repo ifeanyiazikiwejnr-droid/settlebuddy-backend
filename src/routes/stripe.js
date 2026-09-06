@@ -36,6 +36,9 @@ router.post('/create-checkout', authenticate, async (req, res) => {
     }
 
     // Create checkout session
+    console.log('Creating checkout with baseUrl:', baseUrl);
+    console.log('Price ID:', process.env.STRIPE_PRICE_ID);
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
@@ -48,6 +51,8 @@ router.post('/create-checkout', authenticate, async (req, res) => {
       cancel_url: `${baseUrl}/upgrade?cancelled=true`,
       metadata: { user_id: userId.toString() },
     });
+
+    console.log('Checkout session created:', session.id);
 
     res.json({ url: session.url });
   } catch (err) {
