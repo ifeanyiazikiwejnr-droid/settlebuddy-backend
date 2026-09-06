@@ -172,15 +172,19 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // GET /api/auth/me
-router.get('/me', authenticate, async (req, res) => {
+router.get('/me', async (req, res) => {
   try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const result = await pool.query(
       'SELECT id, name, email, role, verified, is_premium FROM users WHERE id=$1',
-      [req.user.id]
+      [decoded.id]
     );
     res.json({ user: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 });
 module.exports = router;
