@@ -171,4 +171,16 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// GET /api/auth/me
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, role, verified, is_premium FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 module.exports = router;
