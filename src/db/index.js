@@ -86,6 +86,20 @@ const createTables = async () => {
       read BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
+        CREATE TABLE IF NOT EXISTS partners (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      institution VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      type VARCHAR(100) DEFAULT 'university',
+      referral_code VARCHAR(50) NOT NULL UNIQUE,
+      commission_rate DECIMAL(5,2) DEFAULT 10.00,
+      active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(50);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(50);
     CREATE TABLE IF NOT EXISTS activity_logs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,

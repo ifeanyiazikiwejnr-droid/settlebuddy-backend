@@ -5,7 +5,7 @@ const { pool } = require('../db');
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, referred_by } = req.body;
   if (!name || !email || !password || !role)
     return res.status(400).json({ error: 'All fields are required' });
   if (!['student','buddy','admin'].includes(role))
@@ -17,8 +17,8 @@ router.post('/register', async (req, res) => {
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
     const hashed = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (name,email,password,role,verified) VALUES ($1,$2,$3,$4,$5) RETURNING id,name,email,role,verified',
-      [name, email, hashed, role, verified]
+      'INSERT INTO users (name,email,password,role,verified,referred_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id,name,email,role,verified',
+      [name, email, hashed, role, verified, referred_by || null]
     );
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
