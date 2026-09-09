@@ -36,6 +36,9 @@ router.post('/request', async (req, res) => {
     const userRes = await pool.query(
       `INSERT INTO users (name, email, password, role, verified, is_demo, demo_expires_at, institution, is_premium)
        VALUES ($1, $2, $3, 'admin', true, true, $4, $5, true)
+       ON CONFLICT (email) DO UPDATE SET
+         password=$3, is_demo=true, demo_expires_at=$4,
+         institution=$5, verified=true, is_premium=true
        RETURNING id, name, email, role`,
       [name, email, hashed, expiresAt, institution]
     );
