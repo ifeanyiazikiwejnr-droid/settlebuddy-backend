@@ -86,6 +86,18 @@ const createTables = async () => {
       read BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS demo_requests (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      institution VARCHAR(255) NOT NULL,
+      role VARCHAR(255),
+      email VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_expires_at TIMESTAMP;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS institution VARCHAR(255);
     CREATE TABLE IF NOT EXISTS compliance_profiles (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,

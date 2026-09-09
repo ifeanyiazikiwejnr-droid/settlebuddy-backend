@@ -38,8 +38,13 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+        // Block expired demo accounts
+    if (user.is_demo && user.demo_expires_at && new Date(user.demo_expires_at) < new Date()) {
+      return res.status(401).json({ error: 'Your demo account has expired. Contact us at partners@settlebuddy.uk to discuss a full partnership.' });
+    }
+
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified, is_premium: user.is_premium } });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified, is_premium: user.is_premium, is_demo: user.is_demo } });
   } catch (err) {
     console.log('Login error:', err.message);
     res.status(500).json({ error: 'Server error' });
