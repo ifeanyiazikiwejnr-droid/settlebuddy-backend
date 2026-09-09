@@ -25,12 +25,14 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: '*', credentials: false }));
-// Webhook must be before express.json() middleware
+
+// Stripe webhook MUST be before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeRoutes);
-app.use('/api/stripe', stripeRoutes);
-app.use('/api/demo', demoRoutes);
+
+// JSON body parser — must come before all other routes
 app.use(express.json());
 
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/buddies', buddyRoutes);
 app.use('/api/accommodations', accommodationRoutes);
@@ -40,14 +42,15 @@ app.use('/api/compliance', complianceRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/checklist', checklistRoutes);
-app.use('/api/checklist', checklistRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/stripe', stripeRoutes);
+app.use('/api/demo', demoRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Socket.io setup
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET','POST'] }
+  cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
 // Auth middleware for sockets
@@ -66,36 +69,24 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.user.name);
 
-  // Join conversation room
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conv_${conversationId}`);
   });
 
-  // Send message
   socket.on('send_message', async ({ conversationId, content }) => {
     if (!content?.trim()) return;
     try {
       const { pool } = require('./db');
-
-      // Verify user is in conversation
       const conv = await pool.query(
         'SELECT * FROM conversations WHERE id=$1 AND (student_id=$2 OR buddy_id=$2)',
         [conversationId, socket.user.id]
       );
       if (!conv.rows.length) return;
-
-      // Save message
       const result = await pool.query(
         'INSERT INTO messages (conversation_id, sender_id, content) VALUES ($1,$2,$3) RETURNING *',
         [conversationId, socket.user.id, content.trim()]
       );
-
-      const message = {
-        ...result.rows[0],
-        sender_name: socket.user.name,
-      };
-
-      // Broadcast to everyone in the room
+      const message = { ...result.rows[0], sender_name: socket.user.name };
       io.to(`conv_${conversationId}`).emit('new_message', message);
     } catch (err) {
       console.log('Message error:', err.message);
