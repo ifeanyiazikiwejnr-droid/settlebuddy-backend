@@ -68,6 +68,13 @@ router.patch('/:key', authenticate, requireRole('student'), async (req, res) => 
        DO UPDATE SET completed=$3, completed_at=$4`,
       [req.user.id, req.params.key, completed, completed ? new Date() : null]
     );
+// Log checklist activity
+    if (completed) {
+      await pool.query(
+        'INSERT INTO activity_logs (user_id, action) VALUES ($1,$2)',
+        [req.user.id, 'checklist_completed']
+      ).catch(() => {});
+    }
     res.json({ message: 'Updated' });
   } catch (err) {
     console.log('Checklist update error:', err.message);

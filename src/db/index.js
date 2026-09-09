@@ -86,6 +86,12 @@ const createTables = async () => {
       read BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      action VARCHAR(100) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS demo_requests (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,

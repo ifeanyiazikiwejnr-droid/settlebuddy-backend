@@ -17,6 +17,7 @@ const checklistRoutes = require('./routes/checklist');
 const complianceRoutes = require('./routes/compliance');
 const stripeRoutes = require('./routes/stripe');
 const demoRoutes = require('./routes/demo');
+const analyticsRoutes = require('./routes/analytics');
 const documentRoutes = require('./routes/documents');
 const aiRoutes = require('./routes/ai');
 
@@ -46,6 +47,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/demo', demoRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Socket.io setup

@@ -60,6 +60,11 @@ router.post('/chat', authenticate, async (req, res) => {
       return res.status(500).json({ error: data.error?.message || 'AI service error' });
     }
 
+    // Log AI usage
+    await pool.query(
+      'INSERT INTO activity_logs (user_id, action) VALUES ($1,$2)',
+      [req.user.id, 'ai_chat']
+    ).catch(() => {});
     res.json({ reply: data.choices[0].message.content });
   } catch (err) {
     console.log('AI chat error:', err.message);
