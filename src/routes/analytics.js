@@ -96,7 +96,7 @@ router.get('/overview', authenticate, requireRole('admin'), async (req, res) => 
     // Top languages spoken by buddies
     const languages = await pool.query(`
       SELECT lang, COUNT(*) as count
-      FROM buddy_profiles, jsonb_array_elements_text(languages::jsonb) as lang
+      FROM buddy_profiles, unnest(languages) as lang
       WHERE verified=true
       GROUP BY lang
       ORDER BY count DESC
