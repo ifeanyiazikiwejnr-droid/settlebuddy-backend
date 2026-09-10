@@ -38,6 +38,40 @@ router.post('/chat', authenticate, async (req, res) => {
   }
 
   try {
+    // Get institution context if student has a referral code
+    let institutionContext = '';
+    try {
+      const userRes = await pool.query(
+        'SELECT referred_by FROM users WHERE id=$1',
+        [req.user.id]
+      );
+      const referralCode = userRes.rows[0]?.referred_by;
+      if (referralCode) {
+        const contentRes = await pool.query(
+          `SELECT * FROM institution_content
+           WHERE referral_code=$1 AND active=true
+           ORDER BY content_type, display_order ASC`,
+          [referralCode]
+        );
+        if (contentRes.rows.length > 0) {
+          const partnerRes = await pool.query(
+            'SELECT institution FROM partners WHERE referral_code=$1',
+            [referralCode]
+          );
+          institutionContext = `\n\nUNIVERSITY CONTEXT:\nInstitution: ${partnerRes.rows[0]?.institution || 'Unknown'}\n`;
+          contentRes.rows.forEach(c => {
+            institutionContext += `[${c.content_type.toUpperCase()}] ${c.title}`;
+            if (c.description) institutionContext += `: ${c.description}`;
+            if (c.phone) institutionContext += ` | Tel: ${c.phone}`;
+            if (c.address) institutionContext += ` | ${c.address}`;
+            institutionContext += '\n';
+          });
+          institutionContext += 'Use this university-specific information when answering questions.\n';
+        }
+      }
+    } catch (contextErr) {
+      console.log('Context fetch error (non-fatal):', contextErr.message);
+    }
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {

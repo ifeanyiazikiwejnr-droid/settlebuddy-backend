@@ -99,7 +99,23 @@ const createTables = async () => {
     );
 
     ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(50);
+
     ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(50);
+    
+    CREATE TABLE IF NOT EXISTS institution_content (
+      id SERIAL PRIMARY KEY,
+      referral_code VARCHAR(50) NOT NULL,
+      content_type VARCHAR(50) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      link VARCHAR(500),
+      address VARCHAR(255),
+      phone VARCHAR(50),
+      active BOOLEAN DEFAULT true,
+      display_order INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS activity_logs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
