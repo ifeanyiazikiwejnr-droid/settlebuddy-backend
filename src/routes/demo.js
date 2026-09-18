@@ -33,12 +33,12 @@ router.post('/request', async (req, res) => {
     const hashed = await bcrypt.hash(demoPassword, 10);
     const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days
 
-    const userRes = await pool.query(
+        const userRes = await pool.query(
       `INSERT INTO users (name, email, password, role, verified, is_demo, demo_expires_at, institution, is_premium)
-       VALUES ($1, $2, $3, 'admin', true, true, $4, $5, true)
+       VALUES ($1, $2, $3, 'institution', true, true, $4, $5, true)
        ON CONFLICT (email) DO UPDATE SET
          password=$3, is_demo=true, demo_expires_at=$4,
-         institution=$5, verified=true, is_premium=true
+         institution=$5, verified=true, is_premium=true, role='institution'
        RETURNING id, name, email, role`,
       [name, email, hashed, expiresAt, institution]
     );
@@ -225,4 +225,114 @@ router.get('/requests', authenticate, requireRole('admin'), async (req, res) => 
   }
 });
 
+// GET /api/demo/dashboard — institution-scoped dashboard data
+router.get('/dashboard', authenticate, async (req, res) => {
+  try {
+    const userRes = await pool.query(
+      'SELECT is_demo, demo_expires_at, institution, role, referred_by FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    const user = userRes.rows[0];
+
+    if (user.role !== 'institution' && user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Find the referral code for this institution
+    let referralCode = null;
+    if (user.institution) {
+      const partnerRes = await pool.query(
+        'SELECT referral_code FROM partners WHERE institution ILIKE $1',
+        [user.institution]
+      );
+      if (partnerRes.rows.length > 0) {
+        referralCode = partnerRes.rows[0].referral_code;
+      }
+    }
+
+    // For demo accounts — get students tagged to this institution's referral code
+    // or demo students seeded for this demo
+    let studentsQuery;
+    if (referralCode) {
+      studentsQuery = await pool.query(
+        `SELECT u.id, u.name, u.email, u.created_at, u.is_premium,
+          COUNT(ci.id) FILTER (WHERE ci.completed=true) as tasks_done,
+          COUNT(ci.id) as tasks_total,
+          br.status as buddy_status,
+          bp.name as buddy_name
+         FROM users u
+         LEFT JOIN checklist_items ci ON ci.user_id = u.id
+         LEFT JOIN buddy_requests br ON br.student_id = u.id AND br.status='accepted'
+         LEFT JOIN users bp ON bp.id = br.buddy_id
+         WHERE u.role='student' AND u.referred_by=$1
+         GROUP BY u.id, br.status, bp.name
+         ORDER BY u.created_at DESC`,
+        [referralCode]
+      );
+    } else {
+      // Demo account — show demo students (is_demo = true and role = student)
+      studentsQuery = await pool.query(
+        `SELECT u.id, u.name, u.email, u.created_at, u.is_premium,
+          COUNT(ci.id) FILTER (WHERE ci.completed=true) as tasks_done,
+          COUNT(ci.id) as tasks_total,
+          br.status as buddy_status,
+          bp.name as buddy_name
+         FROM users u
+         LEFT JOIN checklist_items ci ON ci.user_id = u.id
+         LEFT JOIN buddy_requests br ON br.student_id = u.id AND br.status='accepted'
+         LEFT JOIN users bp ON bp.id = br.buddy_id
+         WHERE u.role='student' AND u.is_demo=true
+         GROUP BY u.id, br.status, bp.name
+         ORDER BY u.created_at DESC`
+      );
+    }
+
+    const students = studentsQuery.rows;
+    const premiumCount = students.filter(s => s.is_premium).length;
+    const matchedCount = students.filter(s => s.buddy_status === 'accepted').length;
+    const avgChecklist = students.length > 0
+      ? (students.reduce((sum, s) => sum + (parseInt(s.tasks_done) / 20 * 100), 0) / students.length).toFixed(1)
+      : 0;
+
+    // Recent activity for these students
+    const studentIds = students.map(s => s.id);
+    let recentActivity = [];
+    if (studentIds.length > 0) {
+      const activityRes = await pool.query(
+        `SELECT al.action, al.created_at, u.name, u.role
+         FROM activity_logs al
+         JOIN users u ON u.id = al.user_id
+         WHERE al.user_id = ANY($1)
+         ORDER BY al.created_at DESC LIMIT 15`,
+        [studentIds]
+      );
+      recentActivity = activityRes.rows;
+    }
+
+    const daysLeft = user.demo_expires_at
+      ? Math.ceil((new Date(user.demo_expires_at) - new Date()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    res.json({
+      institution: user.institution,
+      is_demo: user.is_demo,
+      days_left: daysLeft,
+      expires_at: user.demo_expires_at,
+      referral_code: referralCode,
+      summary: {
+        total_students: students.length,
+        premium_students: premiumCount,
+        matched_students: matchedCount,
+        avg_checklist_completion: parseFloat(avgChecklist),
+        premium_rate: students.length > 0 ? Math.round((premiumCount / students.length) * 100) : 0,
+        match_rate: premiumCount > 0 ? Math.round((matchedCount / premiumCount) * 100) : 0,
+      },
+      students,
+      recent_activity: recentActivity,
+    });
+  } catch (err) {
+    console.log('Dashboard error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
