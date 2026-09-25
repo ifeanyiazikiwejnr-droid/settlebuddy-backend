@@ -86,7 +86,7 @@ const createTables = async () => {
       read BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
-        CREATE TABLE IF NOT EXISTS partners (
+    CREATE TABLE IF NOT EXISTS partners (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       institution VARCHAR(255) NOT NULL,
@@ -101,7 +101,7 @@ const createTables = async () => {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(50);
 
     ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(50);
-    
+
     CREATE TABLE IF NOT EXISTS institution_content (
       id SERIAL PRIMARY KEY,
       referral_code VARCHAR(50) NOT NULL,
@@ -174,6 +174,14 @@ const createTables = async () => {
   `);
   await pool.query(`ALTER TABLE accommodations ADD COLUMN IF NOT EXISTS image_url TEXT`);
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT false');
+      // Add institution role to check constraint
+  await pool.query(`
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+    `).catch(() => {});
+  await pool.query(`
+      ALTER TABLE users ADD CONSTRAINT users_role_check
+      CHECK (role IN ('student', 'buddy', 'admin', 'institution'));
+    `).catch(() => {});
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255)');
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255)');
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_since TIMESTAMP');
